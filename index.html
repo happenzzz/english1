@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Do You Have? 짝 맞추기</title>
 <style>
   * { box-sizing: border-box; }
@@ -224,6 +223,51 @@
     .columns { grid-template-columns: 1fr; }
     h1 { font-size: 28px; }
   }
+  button { touch-action: manipulation; min-height: 46px; }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, .card:focus-visible, summary:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  .voicebar { display: block; border: 1px solid #dce4ef; }
+  .voice-heading, .voice-actions, .voice-modes, .record-feedback, .replay-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .voice-heading { justify-content: space-between; margin-bottom: 14px; font-size: 18px; }
+  .mic-badge { padding: 6px 10px; border-radius: 20px; background: #eef2f7; color: #4b5563; font-size: 13px; }
+  .mic-badge.live { background: #fef2f2; color: #b91c1c; }
+  .mic-badge.ready { background: #ecfdf5; color: #047857; }
+  .voice-modes { gap: 6px; }
+  .mode-btn { background: #f1f5f9; color: #475569; font-size: 15px; }
+  .mode-btn.active { background: #dbeafe; color: #1d4ed8; box-shadow: inset 0 0 0 2px #93c5fd; }
+  .mode-hint { color: #596779; font-size: 14px; line-height: 1.6; margin: 10px 0 14px; overflow-wrap: anywhere; }
+  .finish { background: #087f5b; color: white; }
+  .record-feedback { margin-top: 14px; }
+  .record-clock { font-variant-numeric: tabular-nums; font-size: 14px; color: #475569; }
+  .meter-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: #475569; }
+  #micLevel { width: 140px; height: 18px; }
+  .voice-status { margin: 12px 0 0; line-height: 1.6; min-height: 26px; }
+  .transcript-box { background: #f4f7fc; padding: 12px 14px; border-radius: 12px; margin-top: 12px; }
+  .transcript-box strong { font-size: 13px; color: #475569; }
+  .transcript-box small { font-weight: normal; }
+  .transcript-box p { margin: 6px 0 0; font-size: 19px; line-height: 1.5; overflow-wrap: anywhere; }
+  .replay-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+  #replaySentence { display: inline-block; margin: 4px 0 8px; font-size: 15px; }
+  .replay-actions audio { width: min(100%, 350px); min-width: 0; }
+  .mic-help { margin-top: 18px; border-top: 1px solid #e2e8f0; padding-top: 12px; color: #475569; font-size: 14px; line-height: 1.6; }
+  .mic-help summary { cursor: pointer; font-weight: bold; padding: 4px 0; }
+  .mic-help ol { padding-left: 22px; }
+  .mic-help li { margin-bottom: 8px; }
+  .diagnostic { font-size: 12px; overflow-wrap: anywhere; }
+  .card[aria-disabled="true"] { cursor: default; }
+  @media (max-width: 760px) {
+    .wrap { padding: 14px; }
+    .voice-actions button { flex: 1 1 135px; padding: 11px 12px; }
+    .voice-modes button { flex: 1; font-size: 14px; padding: 10px; }
+    .voice-heading { align-items: flex-start; }
+    .stars { font-size: 25px; }
+  }
+
+  .reading-prompt { margin-bottom: 14px; padding: 14px 16px; border-radius: 12px; background: #eff6ff; border-left: 4px solid #2563eb; }
+  .reading-prompt span { font-size: 13px; color: #475569; }
+  .reading-prompt p { margin: 6px 0 0; font-size: 22px; line-height: 1.45; font-weight: 700; }
+
 </style>
 </head>
 <body>
@@ -237,11 +281,10 @@
   </div>
 
   <div class="guide">
-    ① 문장과 그림의 짝을 고르기.　
-    ② 어려우면 Help를 눌러 원어민 영어 음성을 듣기.　
-    ③ Read를 누르고 질문과 대답을 읽기.　
-    ④ 만일 읽다가 실수할 경우에만 Stop 버튼을 누르고 다시 Read를 누르고 읽기.　
-    ⑤ 바르게 잘 읽으면 두 카드가 사라짐
+    ① 문장과 그림의 짝을 고르기.　② Help로 영어 음성을 듣기.<br>
+    ③ Read를 누르고 <strong>‘말하세요’ 표시가 나오면</strong> 질문과 대답을 읽기.　
+    ④ <strong>말하기 완료</strong>를 눌러 확인하기.<br>
+    내 목소리가 궁금하면 ‘녹음 연습’을 골라 읽고 다시 들어보세요.
   </div>
 
   <div class="status">
@@ -261,18 +304,67 @@
     </section>
   </div>
 
-  <div class="voicebar">
-    <button id="readBtn" class="read" onclick="startReading()">🎤 Read</button>
-    <button id="stopBtn" class="stop" onclick="stopReading()">■ Stop</button>
-    <button id="helpBtn" class="help" onclick="playHelp()">🔊 Help</button>
-    <span id="stars" class="stars" aria-label="별점">
-      <span class="star-on">★</span><span class="star-on">★</span><span class="star-on">★</span>
-    </span>
-    <span id="voiceStatus" class="voice-status">문장 카드를 고른 뒤 Read를 눌러 읽어 보세요.</span>
-  </div>
-
+  <section class="voicebar" aria-label="영어 말하기 연습">
+    <div class="voice-heading">
+      <strong>질문과 대답을 소리 내어 읽어요</strong>
+      <span id="micBadge" class="mic-badge">마이크 대기</span>
+    </div>
+    <div id="readingPrompt" class="reading-prompt" hidden>
+      <span>이번에 읽을 문장</span>
+      <p id="readingQuestion" lang="en"></p><p id="readingAnswer" lang="en"></p>
+    </div>
+    <div class="voice-modes" role="group" aria-label="연습 방법">
+      <button id="autoModeBtn" class="mode-btn active" aria-pressed="true" onclick="setVoiceMode('auto')">자동 읽기 확인</button>
+      <button id="practiceModeBtn" class="mode-btn" aria-pressed="false" onclick="setVoiceMode('practice')">녹음 연습 · 다시 듣기</button>
+    </div>
+    <p id="modeHint" class="mode-hint"></p>
+    <div class="voice-actions">
+      <button id="readBtn" class="read" onclick="startReading()">🎤 Read · 말하기</button>
+      <button id="finishBtn" class="finish" onclick="finishReading()" disabled>✓ 말하기 완료</button>
+      <button id="stopBtn" class="secondary" onclick="stopReading()" disabled>취소</button>
+      <button id="helpBtn" class="help" onclick="playHelp()">🔊 Help · 듣기</button>
+      <span id="stars" class="stars" aria-label="활동 별 3개"></span>
+    </div>
+    <div class="record-feedback">
+      <span id="recordClock" class="record-clock">00:00 / 01:00</span>
+      <div id="meterWrap" class="meter-wrap" hidden>
+        <label for="micLevel">목소리 크기</label>
+        <meter id="micLevel" min="0" max="100" low="10" high="85" optimum="45" value="0">0</meter>
+        <span id="levelHint">말할 때 막대가 움직이는지 보세요.</span>
+      </div>
+    </div>
+    <p id="voiceStatus" class="voice-status" role="status" aria-live="polite">문장 카드와 그림 카드의 짝을 먼저 골라 주세요.</p>
+    <div id="transcriptBox" class="transcript-box" hidden>
+      <strong>들린 말 <small id="transcriptLabel"></small></strong>
+      <p id="heardText" lang="en"></p>
+    </div>
+    <div id="replayBox" class="replay-box" hidden>
+      <div><strong>내 녹음</strong> <span id="replaySentence" lang="en"></span></div>
+      <div class="replay-actions">
+        <button id="replayBtn" class="secondary" onclick="playRecording()" disabled>▶ 내 녹음 듣기</button>
+        <audio id="recordedAudio" controls preload="metadata" aria-label="내 목소리 녹음"></audio>
+      </div>
+      <span id="replayHint" class="mode-hint"></span>
+    </div>
+    <details id="micHelp" class="mic-help">
+      <summary>마이크 확인 · 권한 도움말</summary>
+      <p id="deviceInfo">권한 창은 Read 또는 마이크 확인을 눌렀을 때만 요청합니다.</p>
+      <div class="voice-actions">
+        <button id="micCheckBtn" class="secondary" onclick="checkMicrophone()">마이크 확인</button>
+        <button id="micOffBtn" class="secondary" onclick="turnOffMicrophone()">마이크 끄기</button>
+      </div>
+      <ol>
+        <li>배포한 <strong>HTTPS 주소</strong>를 Chrome 일반 탭에서 직접 열어 주세요. 파일 미리보기나 다른 앱 안의 화면에서는 제한될 수 있어요.</li>
+        <li>스마트패드 설정 → 애플리케이션 → Chrome → 권한 → 마이크에서 <strong>앱 사용 중에만 허용</strong>을 선택해 주세요.</li>
+        <li>Chrome → 설정 → 사이트 설정 → 마이크에서 <strong>현재 사이트를 허용</strong>해 주세요. 기기 전체의 ‘마이크 액세스’도 켜져 있어야 해요.</li>
+        <li>마이크가 다른 앱에서 사용 중이면 그 앱을 닫아 주세요. 학교 관리 기기에서 설정이 잠겨 있으면 담당 선생님께 알려 주세요.</li>
+      </ol>
+      <p id="diagnostic" class="diagnostic" aria-live="polite"></p>
+    </details>
+  </section>
   <div class="note">
-    음성 읽기는 인터넷과 마이크 권한이 필요해요. 갤럭시 스마트패드의 Chrome에서 사용해 주세요.
+    자동 확인은 영어 단어와 대답을 알아듣는 활동이며, 전문 발음 점수는 아니에요. 인식·권한 오류로 별을 줄이지 않아요.<br>
+    자동 음성인식에는 인터넷이 필요하며 브라우저의 인식 서비스가 음성을 처리할 수 있어요. 다시 듣기 녹음은 이 페이지 메모리에만 보관되며 새 녹음이나 페이지 종료 때 지워져요.
   </div>
 
   <div id="success" class="success">
@@ -345,7 +437,7 @@ function shuffle(arr) {
 
 
 function highlightTarget(text) {
-  return text.replace(/(eraser|pencil|ruler|glue stick|glue|stick|notebook)/gi,
+  return text.replace(/\b(eraser|pencil|ruler|glue stick|glue|stick|notebook)\b/gi,
     '<span class="target-word">$1</span>');
 }
 
@@ -359,8 +451,8 @@ function getTargetForms(question) {
   if (q.includes("eraser")) return ["eraser"];
   if (q.includes("pencil")) return ["pencil"];
   if (q.includes("ruler")) return ["ruler"];
-  if (q.includes("glue stick")) return ["glue stick", "glue", "stick"];
-  if (q.includes("glue")) return ["glue", "stick"];
+  if (q.includes("glue stick")) return ["glue stick", "gluestick"];
+  if (q.includes("glue")) return ["glue"];
   if (q.includes("notebook")) return ["notebook", "note book"];
   return [];
 }
@@ -379,6 +471,12 @@ function render() {
     const el = document.createElement("div");
     el.className = "card";
     el.dataset.id = item.id;
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.setAttribute('aria-pressed', 'false');
+    el.onkeydown = event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); el.click(); }
+    };
     el.innerHTML = `<div class="sentence">${highlightTarget(item.q)}</div><span class="answer">${item.a}</span>`;
     el.onclick = () => selectSentence(el, item);
     sWrap.appendChild(el);
@@ -388,6 +486,12 @@ function render() {
     const el = document.createElement("div");
     el.className = "card picture-card";
     el.dataset.id = item.id;
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.setAttribute('aria-pressed', 'false');
+    el.onkeydown = event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); el.click(); }
+    };
     const visual = item.img
       ? `<img class="thumb" src="${item.img}" alt="${item.desc}">`
       : `<div class="emoji">${item.emoji}</div>`;
@@ -398,34 +502,40 @@ function render() {
 }
 
 function clearSentenceSelection() {
-  document.querySelectorAll("#sentenceCards .card").forEach(c => c.classList.remove("selected"));
+  document.querySelectorAll("#sentenceCards .card").forEach(c => { c.classList.remove("selected"); c.setAttribute("aria-pressed", "false"); });
 }
 
 function clearPictureSelection() {
-  document.querySelectorAll("#pictureCards .card").forEach(c => c.classList.remove("selected"));
+  document.querySelectorAll("#pictureCards .card").forEach(c => { c.classList.remove("selected"); c.setAttribute("aria-pressed", "false"); });
 }
 
 function selectSentence(el, item) {
-  if (el.classList.contains("matched")) return;
+  if (selectedSentence?.item.id === item.id) return;
+  if (isBusy() || voice.checking || el.classList.contains("matched")) return;
   clearSentenceSelection();
   el.classList.add("selected");
+  el.setAttribute("aria-pressed", "true");
   selectedSentence = { el, item };
   document.getElementById("voiceStatus").textContent = "Read를 눌러 질문과 대답을 읽어 보세요.";
   checkMatch();
+  updateVoiceUI();
 }
 
 function selectPicture(el, item) {
-  if (el.classList.contains("matched")) return;
+  if (selectedPicture?.item.id === item.id) return;
+  if (isBusy() || voice.checking || el.classList.contains("matched")) return;
   clearPictureSelection();
   el.classList.add("selected");
+  el.setAttribute("aria-pressed", "true");
   selectedPicture = { el, item };
   checkMatch();
+  updateVoiceUI();
 }
 
 function normalizeText(t) {
-  return t.toLowerCase()
+  return String(t || "").toLowerCase()
     .replace(/[’']/g, "")
-    .replace(/[.,!?]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -445,6 +555,7 @@ function updateStars() {
       : '<span class="star-off">★</span>';
   }
   starsEl.innerHTML = out;
+  starsEl.setAttribute("aria-label", `활동 별 ${currentStars}개`);
 }
 
 function resetStars() {
@@ -465,11 +576,15 @@ function checkMatch() {
 
   if (selectedSentence.item.id !== selectedPicture.item.id) {
     document.getElementById("voiceStatus").textContent = "Try again.";
+    const wrongSentence = selectedSentence;
+    const wrongPicture = selectedPicture;
     setTimeout(() => {
+      if (isBusy() || selectedSentence !== wrongSentence || selectedPicture !== wrongPicture) return;
       clearSentenceSelection();
       clearPictureSelection();
       selectedSentence = null;
       selectedPicture = null;
+      updateVoiceUI();
     }, 650);
     return;
   }
@@ -481,6 +596,7 @@ function checkMatch() {
 
 
 function playHelp() {
+  if (isBusy() || voice.checking) return;
   if (!selectedSentence) {
     document.getElementById("voiceStatus").textContent =
       "먼저 듣고 싶은 문장 카드를 골라 주세요.";
@@ -494,8 +610,8 @@ function playHelp() {
   }
 
   // 읽기 녹음 중이라면 잠시 멈춰 Help 음성과 겹치지 않게 함
-  if (reading) stopReading();
-  window.speechSynthesis.cancel();
+  stopPlayback();
+  const helpId = voice.helpSerial;
 
   const text = `${selectedSentence.item.q} ${selectedSentence.item.a}`;
   const utterance = new SpeechSynthesisUtterance(text);
@@ -514,11 +630,13 @@ function playHelp() {
   if (preferredVoice) utterance.voice = preferredVoice;
 
   utterance.onstart = () => {
+    if (helpId !== voice.helpSerial || isBusy()) return;
     document.getElementById("voiceStatus").textContent =
       "Listen carefully. 원어민 영어 음성을 잘 들어 보세요.";
   };
 
   utterance.onend = () => {
+    if (helpId !== voice.helpSerial || isBusy()) return;
     if (score < 5) {
       document.getElementById("voiceStatus").textContent =
         "이제 Read를 눌러 질문과 대답을 읽어 보세요.";
@@ -526,6 +644,7 @@ function playHelp() {
   };
 
   utterance.onerror = () => {
+    if (helpId !== voice.helpSerial || isBusy()) return;
     document.getElementById("voiceStatus").textContent =
       "Help 음성을 재생하지 못했어요. 기기의 소리 설정을 확인해 주세요.";
   };
@@ -533,187 +652,621 @@ function playHelp() {
   window.speechSynthesis.speak(utterance);
 }
 
-function startReading() {
-  if (!selectedSentence || !selectedPicture ||
-      selectedSentence.item.id !== selectedPicture.item.id) {
-    document.getElementById("voiceStatus").textContent =
-      "먼저 맞는 문장 카드와 그림 카드를 골라 주세요.";
-    return;
+// One user action = one recognition session. No automatic start() loop.
+// Android's Web Speech API cannot consume our MediaStreamTrack. On that route,
+// recognition and local recording are separate modes so they never compete for the mic.
+const voice = {
+  mode: 'auto', phase: 'idle', attempt: null, serial: 0,
+  stream: null, micPromise: null, micEpoch: 0, idleTimer: null,
+  context: null, source: null, analyser: null, meterFrame: 0,
+  replayURL: null, helpSerial: 0, forceDirect: false, checking: false,
+  permission: null
+};
+const MAX_RECORD_MS = 60000;
+const PREPARE_MS = 20000;
+const RESULT_WAIT_MS = 6500;
+const byId = id => document.getElementById(id);
+const isBusy = () => voice.phase !== 'idle';
+const isCurrent = a => voice.attempt === a && !a.cancelled;
+const setStatus = message => { byId('voiceStatus').textContent = message; };
+function sharedTrackSupported() {
+  // Conservative compatibility gate (MDN BCD, September 2026). Never pass a
+  // track to Android/iOS where the extra argument can be silently ignored.
+  const ua = navigator.userAgent;
+  const chrome = ua.match(/(?:Chrome|Chromium)\/(\d+)/);
+  return !voice.forceDirect && !/Android|iPhone|iPad|iPod|SamsungBrowser|OPR\//i.test(ua)
+    && !(navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))
+    && !!chrome && Number(chrome[1]) >= 135;
+}
+function hasLiveMic() {
+  return !!voice.stream?.getAudioTracks().some(t => t.readyState === 'live');
+}
+function setBadge(text, kind = '') {
+  byId('micBadge').textContent = text;
+  byId('micBadge').className = 'mic-badge' + (kind ? ' ' + kind : '');
+}
+function setPhase(phase) {
+  voice.phase = phase;
+  reading = phase === 'preparing' || phase === 'listening';
+  updateVoiceUI();
+}
+function updateVoiceUI() {
+  const busy = isBusy();
+  const a = voice.attempt;
+  byId('readingPrompt').hidden = !selectedSentence;
+  byId('readingQuestion').textContent = selectedSentence?.item.q || '';
+  byId('readingAnswer').textContent = selectedSentence?.item.a || '';
+  byId('readBtn').disabled = busy || voice.checking;
+  byId('readBtn').textContent = voice.mode === 'practice' ? '🎤 녹음 시작' : '🎤 Read · 말하기';
+  byId('finishBtn').disabled = !a || !['listening', 'review'].includes(voice.phase);
+  byId('stopBtn').disabled = !busy && !voice.checking;
+  byId('helpBtn').disabled = busy || voice.checking;
+  byId('autoModeBtn').disabled = busy || voice.checking;
+  byId('practiceModeBtn').disabled = busy || voice.checking;
+  byId('micCheckBtn').disabled = busy || voice.checking;
+  byId('micOffBtn').disabled = !busy && !voice.checking && !hasLiveMic() && !voice.micPromise;
+  byId('replayBtn').disabled = busy || voice.checking || !voice.replayURL;
+  byId('recordedAudio').controls = !busy;
+  for (const mode of ['auto', 'practice']) {
+    const button = byId(mode + 'ModeBtn');
+    button.classList.toggle('active', voice.mode === mode);
+    button.setAttribute('aria-pressed', String(voice.mode === mode));
   }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    document.getElementById("voiceStatus").textContent =
-      "이 브라우저에서는 음성 인식을 사용할 수 없어요. Chrome을 사용해 주세요.";
-    return;
-  }
-
-  stopReading();
-
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.continuous = true;
-  reading = true;
-
-  attemptLocked = false;
-  lastTranscript = "";
-  accumulatedSpeech = "";
-  document.getElementById("voiceStatus").textContent =
-    "읽는 중... 질문과 대답을 이어서 읽어 보세요.";
-
-  let heard = "";
-
-  recognition.onresult = (event) => {
-    const last = event.results[event.results.length - 1];
-    if (!last.isFinal) return;
-
-    heard = last[0].transcript || "";
-    const latest = normalizeText(heard);
-
-    if (!latest) return;
-
-    // 같은 결과가 중복으로 들어와도 문제없도록 단순 누적
-    if (latest !== lastTranscript) {
-      accumulatedSpeech = normalizeText(
-        (accumulatedSpeech + " " + latest).trim()
-      );
-      lastTranscript = latest;
-    }
-
-    const targetForms = getTargetForms(selectedSentence.item.q);
-    const hasTarget =
-      containsAny(accumulatedSpeech, targetForms) ||
-      containsAny(latest, targetForms);
-
-    const answerNorm = normalizeText(selectedSentence.item.a);
-    const isNoAnswer = answerNorm.startsWith("no");
-
-    // 아주 널널한 대답 판정:
-    // Yes 문장은 yes / i do / yes i do 중 하나만 잡혀도 통과
-    // No 문장은 no / don't / do not 중 하나만 잡혀도 통과
-    const positiveAnswer =
-      accumulatedSpeech.includes("yes") ||
-      accumulatedSpeech.includes("i do") ||
-      latest.includes("yes") ||
-      latest.includes("i do");
-
-    const negativeAnswer =
-      accumulatedSpeech.includes("no") ||
-      accumulatedSpeech.includes("dont") ||
-      accumulatedSpeech.includes("do not") ||
-      latest.includes("no") ||
-      latest.includes("dont") ||
-      latest.includes("do not");
-
-    // 질문 표현도 매우 완화:
-    // 목표 물건 단어가 들리고, do/you/have 중 하나라도 들리면 질문으로 인정
-    const questionCueCount = ["do", "you", "have"]
-      .filter(word => accumulatedSpeech.includes(word) || latest.includes(word))
-      .length;
-
-    const hasLooseQuestion = hasTarget && questionCueCount >= 1;
-
-    const answerOK = isNoAnswer ? negativeAnswer : positiveAnswer;
-
-    // 핵심 물건 + 맞는 Yes/No만 잡혀도 바로 성공
-    if (hasTarget && answerOK) {
-      document.getElementById("voiceStatus").textContent =
-        `Great! 별점 ${currentStars}개를 받았어요.`;
-      reading = false;
-      setTimeout(() => completePair(), 350);
-      return;
-    }
-
-    // 질문만 먼저 들린 경우에는 계속 대답을 기다림. 별점 차감 없음.
-    if (hasLooseQuestion && !answerOK) {
-      document.getElementById("voiceStatus").textContent =
-        "좋아요! 이어서 대답도 읽어 보세요.";
-      return;
-    }
-
-    // 대답이 먼저 인식된 경우에도 질문을 기다림. 별점 차감 없음.
-    if (!hasTarget && answerOK) {
-      document.getElementById("voiceStatus").textContent =
-        "좋아요! 질문도 함께 읽어 보세요.";
-      return;
-    }
-
-    // 명백하게 반대 대답을 한 경우에만 별점 차감
-    const oppositeAnswer = isNoAnswer ? positiveAnswer : negativeAnswer;
-    if (hasTarget && oppositeAnswer) {
-      loseStar();
-      accumulatedSpeech = "";
-      lastTranscript = "";
-      document.getElementById("voiceStatus").textContent =
-        currentStars > 0
-          ? `다시 읽어 보세요. 별이 1개 줄었어요. (${currentStars}/3)`
-          : "다시 읽어 보세요. 별점은 0점이지만 계속 도전할 수 있어요.";
-      return;
-    }
-
-    // 그 외 애매한 인식은 오답 처리하지 않음
-    document.getElementById("voiceStatus").textContent =
-      "잘 듣고 있어요. 질문과 대답을 이어서 읽어 보세요.";
-  };
-
-  recognition.onerror = (e) => {
-    reading = false;
-    attemptLocked = false;
-    lastTranscript = "";
-
-    const errorType = e && e.error ? e.error : "";
-    let message = "마이크 또는 인터넷 문제예요. 별점은 그대로예요. 권한을 확인한 뒤 다시 Read를 눌러 주세요.";
-
-    if (errorType === "not-allowed" || errorType === "service-not-allowed") {
-      message = "마이크 권한이 필요해요. 별점은 그대로예요. 권한을 허용한 뒤 다시 Read를 눌러 주세요.";
-    } else if (errorType === "audio-capture") {
-      message = "마이크를 찾을 수 없어요. 별점은 그대로예요. 마이크 설정을 확인해 주세요.";
-    } else if (errorType === "network") {
-      message = "인터넷 연결 문제예요. 별점은 그대로예요. 연결 후 다시 Read를 눌러 주세요.";
-    } else if (errorType === "no-speech") {
-      message = "음성이 들리지 않았어요. 별점은 그대로예요. 다시 Read를 눌러 읽어 보세요.";
-    }
-
-    document.getElementById("voiceStatus").textContent = message;
-  };
-
-  recognition.onend = () => {
-    if (reading) {
-      try { recognition.start(); } catch(e) {}
-    }
-  };
-
+  byId('modeHint').textContent = voice.mode === 'practice'
+    ? '내 목소리를 녹음하고 들어보는 연습이에요. 카드 완료와 별점 판정은 자동 읽기 확인에서 해요.'
+    : sharedTrackSupported()
+      ? '‘말하세요’ 표시를 보고 읽은 뒤 ‘말하기 완료’를 눌러 주세요. 읽은 녹음도 다시 들을 수 있어요.'
+      : '‘말하세요’ 표시를 보고 읽은 뒤 ‘말하기 완료’를 눌러 주세요. 내 목소리를 다시 들으려면 ‘녹음 연습’을 골라 주세요.';
+  document.querySelectorAll('.card:not(.matched)').forEach(c => c.setAttribute('aria-disabled', String(busy || voice.checking)));
+}
+function setVoiceMode(mode) {
+  if (isBusy() || voice.checking || !['auto', 'practice'].includes(mode)) return;
+  stopPlayback();
+  voice.mode = mode;
+  if (mode === 'auto' && !sharedTrackSupported()) releaseMicrophone();
+  updateVoiceUI();
+  setStatus(mode === 'practice' ? '짝을 고른 뒤 녹음 시작을 눌러 보세요. 별점은 바뀌지 않아요.' : '짝을 고른 뒤 Read를 눌러 질문과 대답을 읽어 보세요.');
+}
+function stopPlayback() {
+  voice.helpSerial++;
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  const audio = byId('recordedAudio');
+  audio.pause();
+}
+function clearReplay() {
+  const audio = byId('recordedAudio');
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  if (voice.replayURL) URL.revokeObjectURL(voice.replayURL);
+  voice.replayURL = null;
+  byId('replayBox').hidden = true;
+  updateVoiceUI();
+}
+function saveReplay(a, blob) {
+  if (!isCurrent(a) || !blob.size) return;
+  clearReplay();
+  voice.replayURL = URL.createObjectURL(blob);
+  byId('recordedAudio').src = voice.replayURL;
+  byId('replaySentence').textContent = `${a.item.q} ${a.item.a}`;
+  byId('replayHint').textContent = '자기 목소리가 선명한지 듣고, Help의 영어 음성과 비교해 보세요.';
+  byId('replayBox').hidden = false;
+  updateVoiceUI();
+}
+async function playRecording() {
+  if (isBusy() || !voice.replayURL) return;
+  stopPlayback();
+  const audio = byId('recordedAudio');
+  audio.currentTime = 0;
+  try { await audio.play(); }
+  catch { setStatus('녹음의 재생 버튼을 다시 눌러 주세요. 기기의 소리 설정도 확인해 주세요.'); }
+}
+function openAudioContext() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
   try {
-    recognition.start();
-  } catch(e) {
-    document.getElementById("voiceStatus").textContent =
-      "음성 인식을 시작할 수 없어요. 다시 Read를 눌러 주세요.";
+    if (!voice.context || voice.context.state === 'closed') voice.context = new AudioContext();
+    voice.context.resume().catch(() => {});
+  } catch { /* A level meter is optional; a recorder can still work. */ }
+}
+function stopMeter() {
+  cancelAnimationFrame(voice.meterFrame);
+  voice.meterFrame = 0;
+  try { voice.source?.disconnect(); } catch {}
+  voice.source = null;
+  voice.analyser = null;
+  byId('micLevel').value = 0;
+  if (voice.context?.state === 'running') voice.context.suspend().catch(() => {});
+}
+function startMeter(stream, a = null) {
+  stopMeter();
+  const ctx = voice.context;
+  if (!ctx || ctx.state === 'closed') return;
+  try {
+    ctx.resume().catch(() => {});
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser); // Deliberately not connected to speaker output.
+    voice.source = source;
+    voice.analyser = analyser;
+    byId('meterWrap').hidden = false;
+    const values = new Float32Array(analyser.fftSize);
+    let lastPaint = 0;
+    function frame(time) {
+      if (voice.analyser !== analyser) return;
+      analyser.getFloatTimeDomainData(values);
+      let sum = 0;
+      for (const value of values) sum += value * value;
+      const rms = Math.sqrt(sum / values.length);
+      if (a && ctx.state === 'running') {
+        a.meterObserved = true;
+        a.peak = Math.max(a.peak, rms);
+      }
+      if (time - lastPaint > 150) {
+        const level = Math.min(100, Math.round(Math.sqrt(rms) * 180));
+        byId('micLevel').value = level;
+        byId('levelHint').textContent = rms > .65 ? '소리가 너무 커요. 마이크를 조금 멀리 해 보세요.'
+          : rms > .01 ? '목소리가 들어오고 있어요.' : '조용해요. 말할 때 막대가 움직이는지 보세요.';
+        lastPaint = time;
+      }
+      voice.meterFrame = requestAnimationFrame(frame);
+    }
+    voice.meterFrame = requestAnimationFrame(frame);
+  } catch { byId('meterWrap').hidden = true; }
+}
+function showDevice(stream) {
+  const track = stream.getAudioTracks()[0];
+  byId('deviceInfo').textContent = track?.label
+    ? `연결된 마이크: ${track.label}` : '마이크가 연결됐어요. 녹음 연습에서 목소리를 확인해 보세요.';
+}
+async function acquireMicrophone() {
+  clearTimeout(voice.idleTimer);
+  if (!window.isSecureContext) throw Object.assign(new Error(), { name: 'InsecureContext' });
+  if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error(), { name: 'MediaUnsupported' });
+  if (hasLiveMic()) {
+    voice.stream.getAudioTracks().forEach(t => { t.enabled = true; });
+    return voice.stream;
+  }
+  if (voice.micPromise) return voice.micPromise;
+  const epoch = voice.micEpoch;
+  const request = (async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false
+    });
+    if (epoch !== voice.micEpoch || document.hidden) {
+      stream.getTracks().forEach(t => t.stop());
+      throw Object.assign(new Error(), { name: 'AbortError' });
+    }
+    const track = stream.getAudioTracks()[0];
+    if (!track || track.readyState !== 'live') {
+      stream.getTracks().forEach(t => t.stop());
+      throw Object.assign(new Error(), { name: 'NotReadableError' });
+    }
+    voice.stream = stream;
+    track.addEventListener('ended', () => {
+      if (voice.stream !== stream) return;
+      releaseMicrophone();
+      if (isBusy() || voice.checking) stopReading('마이크 연결이 끊겼어요. 연결을 확인한 뒤 다시 Read를 눌러 주세요. 별점은 그대로예요.');
+      setStatus('마이크 연결이 끊겼어요. 연결을 확인한 뒤 다시 Read를 눌러 주세요. 별점은 그대로예요.');
+    }, { once: true });
+    showDevice(stream);
+    return stream;
+  })();
+  voice.micPromise = request;
+  try { return await request; }
+  finally { if (voice.micPromise === request) voice.micPromise = null; }
+}
+function releaseMicrophone() {
+  voice.micEpoch++;
+  clearTimeout(voice.idleTimer);
+  stopMeter();
+  const stream = voice.stream;
+  voice.stream = null;
+  stream?.getTracks().forEach(track => track.stop());
+  if (!isBusy()) setBadge('마이크 꺼짐');
+  updateVoiceUI();
+}
+function parkMicrophone() {
+  stopMeter();
+  if (hasLiveMic()) {
+    voice.stream.getAudioTracks().forEach(t => { t.enabled = false; });
+    setBadge('준비됨 · 녹음 안 함', 'ready');
+    clearTimeout(voice.idleTimer);
+    voice.idleTimer = setTimeout(releaseMicrophone, 90000);
+  } else setBadge('녹음 안 함');
+}
+function errorMessage(error, source = 'media') {
+  const code = typeof error === 'string' ? error : error?.name || 'UnknownError';
+  byId('diagnostic').textContent = `최근 상태: ${source} / ${code}`;
+  const tail = ' 별점은 그대로예요.';
+  const messages = {
+    InsecureContext: '마이크를 쓰려면 배포한 HTTPS 주소를 Chrome에서 직접 열어 주세요.',
+    MediaUnsupported: '이 화면에서는 마이크 녹음을 지원하지 않아요. 최신 Chrome에서 직접 열어 주세요.',
+    NotAllowedError: '마이크 접근이 차단됐어요. 기기의 Chrome 권한과 이 사이트의 마이크 허용을 확인해 주세요.',
+    SecurityError: '이 화면의 보안 설정이 마이크 사용을 막고 있어요. 사이트 주소를 Chrome에서 직접 열어 주세요.',
+    NotFoundError: '사용할 마이크를 찾지 못했어요. 마이크 연결과 기기 설정을 확인해 주세요.',
+    NotReadableError: '권한과 별개로 마이크를 열지 못했어요. 다른 녹음 앱을 닫고 연결을 확인해 주세요.',
+    OverconstrainedError: '연결된 마이크의 녹음 설정을 사용할 수 없어요. 다른 마이크로 다시 시도해 주세요.',
+    AbortError: '마이크 준비가 취소됐어요. 준비가 되면 다시 Read를 눌러 주세요.',
+    PrepareTimeout: '마이크 준비가 오래 걸려 멈췄어요. 권한 창과 인터넷 연결을 확인한 뒤 다시 눌러 주세요.',
+    'not-allowed': '브라우저 음성인식의 마이크 접근이 차단됐어요. Chrome 권한과 현재 사이트의 허용을 확인해 주세요.',
+    'service-not-allowed': '이 브라우저나 기기에서 음성인식 서비스 사용이 제한됐어요. 마이크 권한만의 문제는 아닐 수 있어요. 녹음 연습은 따로 이용할 수 있어요.',
+    'audio-capture': '음성인식이 마이크를 열지 못했어요. 다른 녹음 앱을 닫고 다시 시도해 주세요.',
+    network: '음성인식 서버에 연결하지 못했어요. 인터넷을 확인해 주세요. 녹음 연습은 따로 할 수 있어요.',
+    'language-not-supported': '이 브라우저의 영어 음성인식을 사용할 수 없어요. 녹음 연습을 이용해 주세요.',
+    'no-speech': '알아들은 말이 없어요. 다시 읽거나 녹음 연습에서 목소리를 확인해 보세요.',
+    aborted: '음성인식이 중단됐어요. 준비가 되면 다시 Read를 눌러 주세요.',
+    NotSupportedError: '이 기기에서는 현재 녹음 방식을 사용할 수 없어요. 최신 Chrome에서 다시 열어 주세요.'
+  };
+  if (['NotAllowedError', 'SecurityError', 'InsecureContext', 'not-allowed', 'service-not-allowed'].includes(code)) byId('micHelp').open = true;
+  return (messages[code] || '녹음 또는 인식 처리를 마치지 못했어요. 취소한 뒤 다시 시도해 주세요.') + tail;
+}
+async function checkMicrophone() {
+  if (isBusy() || voice.checking) return;
+  stopPlayback();
+  voice.checking = true;
+  const checkId = ++voice.serial;
+  openAudioContext();
+  updateVoiceUI();
+  setBadge('마이크 준비 중');
+  setStatus('마이크 권한을 확인하고 있어요. 허용 후 잠깐 말해 보세요.');
+  const timeout = setTimeout(() => {
+    if (!voice.checking || voice.serial !== checkId) return;
+    voice.checking = false;
+    releaseMicrophone();
+    setStatus(errorMessage('PrepareTimeout'));
+    updateVoiceUI();
+  }, PREPARE_MS);
+  try {
+    const stream = await acquireMicrophone();
+    clearTimeout(timeout);
+    if (!voice.checking || checkId !== voice.serial) return;
+    setBadge('마이크 확인 중', 'live');
+    startMeter(stream);
+    setStatus('5초 동안 말해 보세요. 막대가 움직이면 소리가 들어오는 거예요. 녹음은 저장하지 않아요.');
+    setTimeout(() => {
+      if (!voice.checking || checkId !== voice.serial) return;
+      voice.checking = false;
+      parkMicrophone();
+      if (voice.mode === 'auto' && !sharedTrackSupported()) releaseMicrophone();
+      updateVoiceUI();
+      setStatus('마이크 확인을 마쳤어요. 짝을 고른 뒤 말하기를 시작해 주세요.');
+    }, 5000);
+  } catch (e) {
+    clearTimeout(timeout);
+    if (!voice.checking || checkId !== voice.serial) return;
+    voice.checking = false;
+    releaseMicrophone();
+    setStatus(errorMessage(e));
+    updateVoiceUI();
   }
 }
-
-function stopReading() {
-  reading = false;
-  if (recognition) {
-    recognition.onend = null;
-    try { recognition.stop(); } catch(e) {}
-    recognition = null;
+function turnOffMicrophone() {
+  stopReading('마이크를 껐어요. 다시 시작하려면 Read를 눌러 주세요.');
+  releaseMicrophone();
+  setBadge('마이크 꺼짐');
+}
+function createRecorder(a, stream) {
+  if (!window.MediaRecorder) throw Object.assign(new Error(), { name: 'MediaUnsupported' });
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  const mimeType = types.find(type => MediaRecorder.isTypeSupported?.(type));
+  const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+  a.recorder = recorder;
+  a.chunks = [];
+  a.recordingDone = new Promise(resolve => { a.resolveRecording = resolve; });
+  recorder.ondataavailable = event => { if (event.data?.size) a.chunks.push(event.data); };
+  recorder.onstop = () => {
+    if (a.recordingSettled) return;
+    a.recordingSettled = true;
+    const blob = new Blob(a.chunks, { type: recorder.mimeType || a.chunks[0]?.type || 'audio/webm' });
+    a.chunks = [];
+    if (!a.recordingFailed) saveReplay(a, blob);
+    a.resolveRecording();
+  };
+  recorder.onerror = event => {
+    a.recordingFailed = true;
+    if (isCurrent(a)) failAttempt(a, errorMessage(event.error || 'NotReadableError'));
+  };
+  return new Promise((resolve, reject) => {
+    recorder.onstart = resolve;
+    try { recorder.start(250); }
+    catch (error) { a.resolveRecording(); reject(error); }
+  });
+}
+function stopRecorder(a) {
+  if (!a.recorder) return Promise.resolve();
+  if (a.recorder.state !== 'inactive') {
+    try { a.recorder.stop(); }
+    catch { a.resolveRecording?.(); }
   }
-  const status = document.getElementById("voiceStatus");
-  if (status && score < 5) {
-    status.textContent = "멈췄어요. 다시 읽으려면 Read를 눌러 주세요.";
+  return a.recordingDone || Promise.resolve();
+}
+function resetRecognitionHandlers(a) {
+  if (!a.recognizer) return;
+  const r = a.recognizer;
+  r.onstart = r.onaudiostart = r.onresult = r.onerror = r.onend = null;
+  try { r.abort(); } catch {}
+  if (recognition === r) recognition = null;
+  a.resolveRecognition?.();
+}
+function stopClock(a) {
+  clearInterval(a.clock);
+  clearTimeout(a.limitTimer);
+  clearTimeout(a.prepareTimer);
+}
+function beginListening(a) {
+  if (!isCurrent(a) || voice.phase !== 'preparing') return;
+  clearTimeout(a.prepareTimer);
+  a.started = performance.now();
+  setPhase('listening');
+  setBadge(a.mode === 'practice' ? '녹음 중' : '듣는 중', 'live');
+  setStatus('말하세요! 질문과 대답을 천천히 읽고, 끝나면 ‘말하기 완료’를 눌러 주세요.');
+  function clock() {
+    const sec = Math.min(60, Math.floor((performance.now() - a.started) / 1000));
+    byId('recordClock').textContent = `00:${String(sec).padStart(2, '0')} / 01:00`;
+    if (sec === 60) byId('recordClock').textContent = '01:00 / 01:00';
+  }
+  a.clock = setInterval(clock, 250);
+  a.limitTimer = setTimeout(() => { if (isCurrent(a) && voice.phase === 'listening') finishReading(); }, MAX_RECORD_MS);
+}
+function showTranscript(a) {
+  const pieces = [...a.results.entries()].sort((x, y) => x[0] - y[0]).map(entry => entry[1]);
+  const text = pieces.map(p => p.text).join(' ').trim();
+  byId('transcriptBox').hidden = !text;
+  byId('heardText').textContent = text;
+  byId('transcriptLabel').textContent = pieces.some(p => !p.final) ? '(인식 중 · 아직 확정되지 않았어요)' : '(인식된 내용)';
+}
+function startRecognizer(a, track = null) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR();
+  a.recognizer = r;
+  recognition = r;
+  r.lang = 'en-US';
+  r.continuous = true;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+  r.onstart = () => { beginListening(a); };
+  r.onresult = event => {
+    if (!isCurrent(a) || a.finalized) return;
+    for (let i = 0; i < event.results.length; i++) {
+      const result = event.results[i];
+      a.results.set(i, { text: result[0]?.transcript || '', final: !!result.isFinal });
+    }
+    // Result indices replace previous hypotheses; they are never blindly appended.
+    for (const key of a.results.keys()) if (key >= event.results.length) a.results.delete(key);
+    showTranscript(a);
+  };
+  r.onerror = event => {
+    if (!isCurrent(a) || a.finalized) return;
+    if (event.error === 'no-speech') { a.noSpeech = true; return; }
+    a.error = event.error || 'unknown';
+    a.resolveRecognition?.();
+    if (voice.phase !== 'finishing') failAttempt(a, errorMessage(a.error, 'recognition'));
+  };
+  r.onend = () => {
+    a.ended = true;
+    a.resolveRecognition?.();
+    if (!isCurrent(a) || a.finalized || voice.phase === 'finishing') return;
+    stopClock(a);
+    stopRecorder(a);
+    parkMicrophone();
+    setPhase('review');
+    setStatus('브라우저가 듣기를 먼저 끝냈어요. 말한 내용을 확인하려면 ‘말하기 완료’를, 처음부터 다시 읽으려면 ‘취소’를 눌러 주세요.');
+    // Intentionally no r.start(): an early end always needs the child's next action.
+  };
+  if (track) r.start(track); else r.start();
+}
+async function startReading() {
+  if (isBusy() || voice.checking) return;
+  if (!selectedSentence || !selectedPicture || selectedSentence.item.id !== selectedPicture.item.id) {
+    setStatus('먼저 맞는 문장 카드와 그림 카드를 골라 주세요.'); return;
+  }
+  if (!window.isSecureContext) { setStatus(errorMessage('InsecureContext')); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (voice.mode === 'auto' && !SR) {
+    setStatus('이 브라우저는 자동 읽기 확인을 지원하지 않아요. ‘녹음 연습’에서 읽고 다시 들을 수 있어요.'); return;
+  }
+  stopPlayback();
+  clearReplay();
+  byId('transcriptBox').hidden = true;
+  byId('heardText').textContent = '';
+  byId('recordClock').textContent = '00:00 / 01:00';
+  byId('meterWrap').hidden = true;
+  byId('diagnostic').textContent = '';
+  const a = { id: ++voice.serial, item: selectedSentence.item, mode: voice.mode,
+    results: new Map(), peak: 0, meterObserved: false, cancelled: false, finalized: false,
+    usesTrack: voice.mode === 'auto' && sharedTrackSupported() };
+  voice.attempt = a;
+  setPhase('preparing');
+  setBadge('마이크 준비 중');
+  setStatus('마이크를 준비하고 있어요. 권한 창이 뜨면 허용하고, ‘말하세요’ 표시를 기다려 주세요.');
+  a.prepareTimer = setTimeout(() => {
+    if (isCurrent(a) && voice.phase === 'preparing') failAttempt(a, errorMessage('PrepareTimeout'));
+  }, PREPARE_MS);
+  try {
+    if (a.mode === 'practice' || a.usesTrack) {
+      openAudioContext();
+      const stream = await acquireMicrophone();
+      if (!isCurrent(a) || voice.phase !== 'preparing') return;
+      startMeter(stream, a);
+      await createRecorder(a, stream);
+      if (!isCurrent(a) || voice.phase !== 'preparing') return;
+      if (a.mode === 'practice') beginListening(a);
+      else {
+        try { startRecognizer(a, stream.getAudioTracks()[0]); }
+        catch (error) {
+          voice.forceDirect = true;
+          failAttempt(a, '이 브라우저는 녹음과 자동 확인을 함께 시작하지 못했어요. 다시 Read를 누르면 자동 확인만 사용해요. 녹음은 ‘녹음 연습’에서 할 수 있어요. 별점은 그대로예요.');
+        }
+      }
+    } else {
+      // Release a previous mic-check stream before the recognition service opens its own input.
+      releaseMicrophone();
+      startRecognizer(a);
+    }
+  } catch (error) {
+    if (isCurrent(a)) failAttempt(a, errorMessage(error));
   }
 }
-
-function completePair() {
+function failAttempt(a, message) {
+  if (!isCurrent(a) || a.finalized) return;
+  a.finalized = true;
+  a.error = a.error || 'capture-failed';
+  stopClock(a);
+  resetRecognitionHandlers(a);
+  stopRecorder(a);
+  releaseMicrophone();
+  setPhase('idle');
+  setBadge('확인 필요');
+  setStatus(message);
+}
+async function waitForRecognition(a) {
+  if (!a.recognizer || a.ended || a.error) return;
+  await new Promise(resolve => {
+    const timeout = setTimeout(() => {
+      a.error = 'result-timeout';
+      resetRecognitionHandlers(a);
+      resolve();
+    }, RESULT_WAIT_MS);
+    a.resolveRecognition = () => { clearTimeout(timeout); resolve(); };
+    try { a.recognizer.stop(); }
+    catch { a.error = 'stopping-failed'; a.resolveRecognition(); }
+  });
+}
+async function finishReading() {
+  const a = voice.attempt;
+  if (!a || !isCurrent(a) || !['listening', 'review'].includes(voice.phase)) return;
+  setPhase('finishing');
+  stopClock(a);
+  setBadge('결과 확인 중');
+  setStatus(a.mode === 'practice' ? '녹음을 마무리하고 있어요.' : '말한 내용을 확인하고 있어요. 잠깐만 기다려 주세요.');
+  const recordDone = stopRecorder(a);
+  await waitForRecognition(a);
+  // MediaRecorder.stop() is asynchronous; keep its final chunk before presenting replay.
+  let recordTimeout;
+  await Promise.race([recordDone, new Promise(resolve => {
+    recordTimeout = setTimeout(() => { a.recordingFailed = true; resolve(); }, 2500);
+  })]);
+  clearTimeout(recordTimeout);
+  if (!isCurrent(a)) return;
+  a.finalized = true;
+  resetRecognitionHandlers(a);
+  parkMicrophone();
+  setPhase('idle');
+  const finalSpeech = [...a.results.entries()].sort((x, y) => x[0] - y[0])
+    .map(entry => entry[1]).filter(r => r.final).map(r => r.text).join(' ').trim();
+  lastTranscript = finalSpeech;
+  accumulatedSpeech = normalizeText(finalSpeech);
+  if (a.mode === 'practice') {
+    if (a.error || a.recordingFailed || !voice.replayURL) setStatus('녹음을 저장하지 못했어요. 다시 녹음해 주세요. 별점은 그대로예요.');
+    else if (a.meterObserved && a.peak < .008) setStatus('녹음된 소리가 아주 작아요. 내 녹음을 듣고 마이크 위치나 연결을 확인해 보세요.');
+    else setStatus('녹음했어요! 내 녹음을 들어본 뒤, ‘자동 읽기 확인’에서 도전해 보세요. 별점은 바뀌지 않았어요.');
+    voice.attempt = null;
+    updateVoiceUI();
+    return;
+  }
+  if (a.error) {
+    setStatus(a.error === 'result-timeout'
+      ? '인식 결과가 늦어져 기다림을 멈췄어요. 인터넷을 확인한 뒤 다시 읽어 주세요. 별점은 그대로예요.'
+      : a.error === 'capture-failed' ? '마이크 또는 녹음 처리를 마치지 못했어요. 도움말을 확인하고 다시 Read를 눌러 주세요. 별점은 그대로예요.'
+      : errorMessage(a.error, 'recognition'));
+  } else if (!finalSpeech) {
+    setStatus('확정된 인식 결과가 없어요. 다시 읽거나 녹음 연습에서 목소리를 확인해 보세요. 별점은 그대로예요.');
+  } else {
+    const result = evaluateReading(finalSpeech, a.item);
+    if (result.ok) completePair(a.item.id);
+    else if (result.opposite) {
+      loseStar();
+      setStatus(`들린 대답이 카드의 Yes / No와 달라요. 화면의 대답을 보고 다시 읽어 보세요. (★ ${currentStars}/3)`);
+    } else setStatus(result.message + ' 별점은 그대로예요.');
+  }
+  voice.attempt = null;
+  updateVoiceUI();
+}
+function stopReading(message = '취소했어요. 별점은 그대로예요. 다시 시작하려면 Read를 눌러 주세요.') {
+  voice.serial++;
+  voice.checking = false;
+  const a = voice.attempt;
+  if (a) {
+    a.cancelled = true;
+    stopClock(a);
+    resetRecognitionHandlers(a);
+    stopRecorder(a);
+  }
+  voice.attempt = null;
+  setPhase('idle');
+  releaseMicrophone();
+  setStatus(message);
+  updateVoiceUI();
+}
+function phraseIn(text, phrase) {
+  return (` ${text} `).includes(` ${phrase} `);
+}
+function evaluateReading(transcript, item) {
+  const text = normalizeText(transcript).replace(/\bdo not\b/g, 'dont');
+  const target = getTargetForms(item.q).some(form => phraseIn(text, form));
+  const question = /\b(?:do you(?: have)?|you have)\b/.test(text);
+  const yes = phraseIn(text, 'yes');
+  const no = phraseIn(text, 'no');
+  const negative = no || phraseIn(text, 'dont');
+  const positive = yes || (!negative && phraseIn(text, 'i do'));
+  const ambiguous = yes && negative;
+  const expectNo = normalizeText(item.a).startsWith('no ');
+  const answerOK = !ambiguous && (expectNo ? negative : positive && !negative);
+  if (target && question && answerOK) return { ok: true };
+  if (target && question && !ambiguous && (expectNo ? positive && !negative : negative && !yes)) return { opposite: true };
+  return { message: !target ? '물건 이름이 또렷하게 들리지 않았어요. 질문을 다시 읽어 보세요.'
+    : !question ? '질문도 함께 읽어 주세요. “Do you have …?”부터 읽어 보세요.'
+    : ambiguous ? 'Yes와 No가 함께 들려서 대답을 확인하기 어려워요. 다시 읽어 주세요.'
+    : '질문 뒤에 카드의 대답도 함께 읽어 주세요.' };
+}
+async function watchPermission() {
+  if (!navigator.permissions?.query) return;
+  try {
+    const permission = await navigator.permissions.query({ name: 'microphone' });
+    voice.permission = permission;
+    permission.onchange = () => {
+      if (permission.state === 'denied') {
+        stopReading(errorMessage('NotAllowedError'));
+        byId('deviceInfo').textContent = '마이크 권한이 차단되어 있어요. 위의 안내대로 설정을 확인해 주세요.';
+      }
+    };
+  } catch { /* Unsupported permission queries must never be treated as denial. */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  stopPlayback();
+  stopReading('화면을 벗어나 마이크를 껐어요. 돌아오면 Read를 다시 눌러 주세요.');
+});
+window.addEventListener('pagehide', () => {
+  stopPlayback();
   stopReading();
-  if (!selectedSentence || !selectedPicture) return;
+  clearReplay();
+  voice.context?.close().catch(() => {});
+});
+byId('recordedAudio').addEventListener('play', () => {
+  if (isBusy()) { byId('recordedAudio').pause(); return; }
+  voice.helpSerial++;
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+});
+watchPermission();
+updateVoiceUI();
+
+
+function completePair(itemId) {
+  if (!selectedSentence || !selectedPicture || selectedSentence.item.id !== itemId ||
+      selectedPicture.item.id !== itemId || selectedSentence.el.classList.contains('matched')) return;
 
   selectedSentence.el.classList.add("matched");
   selectedPicture.el.classList.add("matched");
   selectedSentence.el.classList.remove("selected");
   selectedPicture.el.classList.remove("selected");
 
+  selectedSentence.el.tabIndex = -1;
+  selectedPicture.el.tabIndex = -1;
+  selectedSentence.el.setAttribute('aria-pressed', 'false');
+  selectedPicture.el.setAttribute('aria-pressed', 'false');
   score++;
   document.getElementById("score").textContent = score;
   const earnedStars = currentStars;
@@ -724,6 +1277,7 @@ function completePair() {
   selectedPicture = null;
 
   if (score === 5) {
+    releaseMicrophone();
     document.getElementById("success").style.display = "flex";
     document.getElementById("voiceStatus").textContent = "Great job! 모든 문장을 읽었어요.";
   }
@@ -736,6 +1290,11 @@ function closeSuccess() {
 
 function resetGame() {
   stopReading();
+  stopPlayback();
+  clearReplay();
+  byId("transcriptBox").hidden = true;
+  byId("meterWrap").hidden = true;
+  byId("recordClock").textContent = "00:00 / 01:00";
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   score = 0;
   selectedSentence = null;
@@ -746,6 +1305,7 @@ function resetGame() {
   document.getElementById("voiceStatus").textContent =
     "문장 카드를 고른 뒤 Read를 눌러 읽어 보세요.";
   render();
+  updateVoiceUI();
 }
 
 function toggleFullscreen() {
@@ -758,6 +1318,8 @@ function toggleFullscreen() {
 
 render();
 updateStars();
+updateVoiceUI();
 </script>
-</body>
-</html>
+
+
+</body></html>
