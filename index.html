@@ -3,6 +3,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Do You Have? 짝 맞추기</title>
+<meta name="app-version" content="mic-fix-2.1-transcript">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1010,12 +1011,73 @@ function beginListening(a) {
   a.clock = setInterval(clock, 250);
   a.limitTimer = setTimeout(() => { if (isCurrent(a) && voice.phase === 'listening') finishReading(); }, MAX_RECORD_MS);
 }
-function showTranscript(a) {
-  const pieces = [...a.results.entries()].sort((x, y) => x[0] - y[0]).map(entry => entry[1]);
-  const text = pieces.map(p => p.text).join(' ').trim();
+function transcriptWords(text) {
+  return normalizeText(text).split(/\s+/).filter(Boolean);
+}
+function startsWithWords(words, prefix) {
+  return prefix.length <= words.length && prefix.every((word, i) => word === words[i]);
+}
+function endsWithWords(words, suffix) {
+  return suffix.length <= words.length && suffix.every((word, i) => word === words[words.length - suffix.length + i]);
+}
+function cleanProgressiveFrame(text) {
+  const raw = String(text || '').trim().replace(/\s+/g, ' ');
+  // Some services put several growing hypotheses inside ONE result string.
+  // Collapse only a provable prefix chain; do not hide conflicting answers.
+  const starts = [...raw.matchAll(/\bdo\s+you\b/gi)].map(match => match.index);
+  if (starts.length < 2 || starts[0] !== 0) return raw;
+  const frames = starts.map((start, i) => raw.slice(start, starts[i + 1] ?? raw.length).trim());
+  const latest = frames[frames.length - 1];
+  const latestWords = transcriptWords(latest);
+  return frames.slice(0, -1).every(frame => startsWithWords(latestWords, transcriptWords(frame))) ? latest : raw;
+}
+function mergeTranscriptPieces(pieces) {
+  let text = '';
+  for (const piece of pieces) {
+    const next = cleanProgressiveFrame(piece.text);
+    const incoming = transcriptWords(next);
+    if (!incoming.length) continue;
+    const current = transcriptWords(text);
+    if (!current.length || startsWithWords(incoming, current)) {
+      // A new index may contain a revision of the SAME whole utterance.
+      text = next;
+      continue;
+    }
+    if (startsWithWords(current, incoming) || endsWithWords(current, incoming)) continue;
+    // Keep the latest revision of an unfinished question (e.g. blue -> glue).
+    // Never erase a completed yes/no answer to manufacture a successful match.
+    const currentHasAnswer = current.some(word => ['yes', 'no', 'dont'].includes(word))
+      || /\bi do\b/.test(current.join(' '));
+    const sameQuestionStart = current.slice(0, 3).join(' ') === 'do you have'
+      && incoming.slice(0, 3).join(' ') === 'do you have';
+    if (sameQuestionStart && !currentHasAnswer && incoming.length >= current.length) {
+      text = next;
+      continue;
+    }
+    let overlap = Math.min(current.length, incoming.length);
+    while (overlap > 0 && !endsWithWords(current, incoming.slice(0, overlap))) overlap--;
+    if (overlap) {
+      // Token boundaries keep "no" distinct from "notebook" and "do" from "dont".
+      // Case/punctuation in an overlapping fragment are cosmetic; preserve words.
+      text = [...current, ...incoming.slice(overlap)].join(' ');
+    } else {
+      // Independent results such as the question and its answer must both survive.
+      text = `${text} ${next}`;
+    }
+  }
+  return cleanProgressiveFrame(text).trim();
+}
+function getRecognitionTranscript(a, finalOnly = false) {
+  const pieces = [...a.results.entries()].sort((x, y) => x[0] - y[0])
+    .map(entry => entry[1]).filter(piece => !finalOnly || piece.final);
+  return mergeTranscriptPieces(pieces);
+}
+function showTranscript(a, finalOnly = false) {
+  const text = getRecognitionTranscript(a, finalOnly);
   byId('transcriptBox').hidden = !text;
   byId('heardText').textContent = text;
-  byId('transcriptLabel').textContent = pieces.some(p => !p.final) ? '(인식 중 · 아직 확정되지 않았어요)' : '(인식된 내용)';
+  const hasInterim = !finalOnly && [...a.results.values()].some(piece => !piece.final && piece.text.trim());
+  byId('transcriptLabel').textContent = hasInterim ? '(인식 중 · 아직 확정되지 않았어요)' : '(인식된 내용)';
 }
 function startRecognizer(a, track = null) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1033,7 +1095,7 @@ function startRecognizer(a, track = null) {
       const result = event.results[i];
       a.results.set(i, { text: result[0]?.transcript || '', final: !!result.isFinal });
     }
-    // Result indices replace previous hypotheses; they are never blindly appended.
+    // Replace result slots, then merge cumulative revisions across different slots too.
     for (const key of a.results.keys()) if (key >= event.results.length) a.results.delete(key);
     showTranscript(a);
   };
@@ -1154,8 +1216,8 @@ async function finishReading() {
   resetRecognitionHandlers(a);
   parkMicrophone();
   setPhase('idle');
-  const finalSpeech = [...a.results.entries()].sort((x, y) => x[0] - y[0])
-    .map(entry => entry[1]).filter(r => r.final).map(r => r.text).join(' ').trim();
+  const finalSpeech = getRecognitionTranscript(a, true);
+  showTranscript(a, true);
   lastTranscript = finalSpeech;
   accumulatedSpeech = normalizeText(finalSpeech);
   if (a.mode === 'practice') {
